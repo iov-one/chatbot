@@ -1,7 +1,6 @@
 package main
 
 import (
-	"log"
 	"os"
 
 	"github.com/go-chat-bot/bot/slack"
@@ -15,7 +14,8 @@ func main() {
 	deployCommand.Register()
 
 	if os.Getenv(slackTokenEnv) == "" {
-		log.Fatalf("you must supply a slack token via %s env variable\n", slackTokenEnv)
+		chatbot.Log("you must supply a slack token via %s env variable\n", slackTokenEnv)
+		os.Exit(1)
 	}
 
 	slack.Run(os.Getenv(slackTokenEnv))
