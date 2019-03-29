@@ -30,7 +30,7 @@ func (c *deployCommand) Register() {
 }
 
 func (c *deployCommand) Func() func(*bot.Cmd) (string, error) {
-	commandString := "kubectl set image %s %s=%s"
+	commandString := "kubectl set image %s %s %s=%s"
 	return func(cmd *bot.Cmd) (s string, e error) {
 		if len(cmd.Args) != 3 {
 			return fmt.Sprintf(invalidDeploySyntax, strings.Join(cmd.Args, " ")), nil
@@ -41,10 +41,10 @@ func (c *deployCommand) Func() func(*bot.Cmd) (string, error) {
 		image := cmd.Args[2]
 
 		output := ""
-		// Not that this is a hack to make sure we force redeployment even if the image tag is the same
+		// Note that this is a hack to make sure we force redeployment even if the image tag is the same
 		for _, imageName := range []string{"dummy", image} {
 			for _, entityType := range []string{"deployment", "statefulset"} {
-				output := execute(fmt.Sprintf(commandString, entityType, app, container, imageName))
+				output = execute(fmt.Sprintf(commandString, entityType, app, container, imageName))
 
 				if !isNotFound(output) {
 					break
