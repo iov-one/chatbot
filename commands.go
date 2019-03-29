@@ -41,12 +41,14 @@ func (c *deployCommand) Func() func(*bot.Cmd) (string, error) {
 		image := cmd.Args[2]
 
 		output := ""
+		// Not that this is a hack to make sure we force redeployment even if the image tag is the same
+		for _, imageName := range []string{"dummy", image} {
+			for _, entityType := range []string{"deployment", "statefulset"} {
+				output := execute(fmt.Sprintf(commandString, entityType, app, container, imageName))
 
-		for _, entityType := range []string{"deployment", "statefulset"} {
-			output := execute(fmt.Sprintf(commandString, entityType, app, container, image))
-
-			if !isNotFound(output) {
-				break
+				if !isNotFound(output) {
+					break
+				}
 			}
 		}
 
