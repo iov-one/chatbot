@@ -3,7 +3,7 @@ ADD . /go/src/github.com/iov-one/chatbot
 WORKDIR /go/src/github.com/iov-one/chatbot/cmd/bot/
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o app .
 
-FROM alpine:3.7
+FROM alpine:3.9
 
 ARG KUBE_VERSION="1.11.1"
 
