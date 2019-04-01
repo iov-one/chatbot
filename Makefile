@@ -1,6 +1,6 @@
 BUILD_VERSION := 0.0.1
 BUILDOUT ?= chatbot
-IMAGE_NAME = "iov1/chatbot:${BUILD_VERSION}"
+IMAGE_NAME = "iov1/chatbot:v${BUILD_VERSION}"
 
 dist: deps clean test build
 
