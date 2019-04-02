@@ -1,4 +1,4 @@
-BUILD_VERSION := 0.0.1
+BUILD_VERSION := manual
 BUILDOUT ?= chatbot
 IMAGE_NAME = "iov1/chatbot:v${BUILD_VERSION}"
 
