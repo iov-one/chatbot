@@ -27,4 +27,5 @@ After creating and setting up a bot - invite it to your desired Slack channel(s)
 is a statefulset/deployment name, `your_container` is a container name within a pod and image is the image you want  
 to deploy. Note, that it automatically forces redeploy even if the image name is the same as the last deployed one  
 but if you want to force pull - you need to specify `imagePullPolicy: Always` for your container in the manifest.
+* `!reset your_app`, basically resets data for statefulesets, where `your_app` is your app label and it's name.
 * A link with concrete commands per artifact can be found [here](https://github.com/iov-one/devnet-operations/blob/master/README.md#deploying-current-artifacts-with-chatbot)
