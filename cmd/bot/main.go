@@ -10,8 +10,14 @@ import (
 const slackTokenEnv = "CHATBOT_SLACK_TOKEN"
 
 func main() {
-	deployCommand := chatbot.NewDeployCommand()
-	deployCommand.Register()
+	commands := []chatbot.Command{
+		chatbot.NewDeployCommand(),
+		chatbot.NewResetCommand(),
+	}
+
+	for _, cmd := range commands {
+		cmd.Register()
+	}
 
 	if os.Getenv(slackTokenEnv) == "" {
 		chatbot.Log("you must supply a slack token via %s env variable\n", slackTokenEnv)

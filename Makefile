@@ -14,7 +14,10 @@ test:
 	go test -race ./...
 
 deps:
-	dep ensure --vendor-only
+ifndef $(shell command -v dep help > /dev/null)
+	go get github.com/golang/dep/cmd/dep
+endif
+	dep ensure -vendor-only
 
 docker_build: deps
 	docker build . -t $(IMAGE_NAME)
