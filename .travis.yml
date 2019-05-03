@@ -33,13 +33,13 @@ script:
 
     if [[ $release_latest == "yes" ]]; then
     docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD";
-    BUILD_VERSION="latest" make docker
+    BUILD_VERSION="latest" make docker;
     docker logout;
     fi;
 
     if [[ $release_tag == "yes" ]]; then
     docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD";
-    BUILD_VERSION="$TRAVIS_TAG" make docker
+    BUILD_VERSION="$TRAVIS_TAG" make docker;
     docker logout;
     fi;
     fi;
