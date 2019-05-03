@@ -26,6 +26,10 @@ type deployCommand struct {
 	client *http.Client
 }
 
+func (c *deployCommand) Func() func(*bot.Cmd) (string, error) {
+	panic("stub")
+}
+
 func NewDeployCommand() Command {
 	return &deployCommand{
 		client: &http.Client{Timeout: 2 * time.Second},
@@ -33,61 +37,86 @@ func NewDeployCommand() Command {
 }
 
 func (c *deployCommand) Register() {
-	bot.RegisterCommand(
+	bot.RegisterCommandV3(
 		"deploy",
 		"Kubectl deployment abstraction",
 		"your_app your_container your/docker:image",
-		c.Func())
+		c.Func3())
 }
 
-func (c *deployCommand) Func() func(*bot.Cmd) (string, error) {
+func (c *deployCommand) Func3() func(*bot.Cmd) (bot.CmdResultV3, error) {
 	commandString := "kubectl set image %s %s %s=%s"
-	return func(cmd *bot.Cmd) (s string, e error) {
-		if len(cmd.Args) != 3 {
-			return fmt.Sprintf(invalidDeploySyntax, strings.Join(cmd.Args, " ")), nil
+	statusCommandString := "kubectl get pods --selector=app=%s"
+	return func(cmd *bot.Cmd) (s bot.CmdResultV3, e error) {
+		res := bot.CmdResultV3{
+			Message: make(chan string, 1),
+			Done:    make(chan bool, 1),
 		}
 
-		app := cmd.Args[0]
-		container := cmd.Args[1]
-		image := cmd.Args[2]
+		go func() {
+			defer func() {
+				res.Done <- true
+			}()
+			if len(cmd.Args) != 3 {
+				res.Message <- fmt.Sprintf(invalidDeploySyntax, strings.Join(cmd.Args, " "))
+				return
+			}
 
-		imageParts := strings.Split(image, ":")
-		if len(imageParts) != 2 {
-			return fmt.Sprintf(invalidImageFormat, image), nil
-		}
+			app := cmd.Args[0]
+			container := cmd.Args[1]
+			image := cmd.Args[2]
 
-		imageRepo := imageParts[0]
-		imageTag := imageParts[1]
+			imageParts := strings.Split(image, ":")
+			if len(imageParts) != 2 {
+				res.Message <- fmt.Sprintf(invalidImageFormat, image)
+				return
+			}
 
-		if r, err :=
-			c.client.Get(fmt.Sprintf(
-				"https://index.docker.io/v1/repositories/%s/tags/%s",
-				imageRepo, imageTag)); r.StatusCode != 200 || err != nil {
-			return fmt.Sprintf(invalidImage, imageTag, imageRepo), nil
-		}
+			imageRepo := imageParts[0]
+			imageTag := imageParts[1]
 
-		output := ""
-		// Note that this is a hack to make sure we force redeployment even if the image tag is the same
-		for _, imageName := range []string{"dummy", image} {
-			for _, entityType := range []string{"deployment", "statefulset"} {
-				output = execute(fmt.Sprintf(commandString, entityType, app, container, imageName))
+			if r, err :=
+				c.client.Get(fmt.Sprintf(
+					"https://index.docker.io/v1/repositories/%s/tags/%s",
+					imageRepo, imageTag)); r.StatusCode != 200 || err != nil {
+				res.Message <- fmt.Sprintf(invalidImage, imageTag, imageRepo)
+				return
+			}
 
-				if !isNotFound(output) {
-					break
+			output := ""
+			// Note that this is a hack to make sure we force redeployment even if the image tag is the same
+			for _, imageName := range []string{"dummy", image} {
+				for _, entityType := range []string{"deployment", "statefulset"} {
+					output = execute(fmt.Sprintf(commandString, entityType, app, container, imageName))
+
+					if !isNotFound(output) {
+						break
+					}
 				}
 			}
-		}
 
-		if isNotFound(output) {
-			return fmt.Sprintf(appNotFound, app), nil
-		}
+			if isNotFound(output) {
+				res.Message <- fmt.Sprintf(appNotFound, app)
+				return
+			}
 
-		return fmt.Sprintf(cmdResponse, output), nil
+			res.Message <- fmt.Sprintf(cmdResponse, output)
+			time.Sleep(time.Second * 20)
+			res.Message <- fmt.Sprintf(cmdResponse, execute(fmt.Sprintf(statusCommandString, app)))
+
+			return
+		}()
+
+		return res, nil
 	}
 }
 
 type resetCommand struct {
 	lock sync.Locker
+}
+
+func (c *resetCommand) Func3() func(*bot.Cmd) (bot.CmdResultV3, error) {
+	panic("stub")
 }
 
 func NewResetCommand() Command {
