@@ -2,9 +2,11 @@ package chatbot
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/go-chat-bot/bot"
 )
@@ -12,6 +14,8 @@ import (
 const (
 	invalidDeploySyntax = "Deploy command requires 3 parameters: " +
 		"```!deploy your_app your_container your/docker:image``` \nGot: ```!deploy %s```"
+	invalidImageFormat = "```Invalid image format, should be your_dockerhub_repo:tag``` \nGot: ```%s```"
+	invalidImage       = "```Invalid image, tag %s does not exist in dockerhub repo %s```"
 	invalidResetSyntax = "Reset command requires 1 parameter: " +
 		"```!deploy your_app``` \nGot: ```!deploy %s```"
 	appNotFound = "Sorry, app %s could not be found"
@@ -19,10 +23,13 @@ const (
 )
 
 type deployCommand struct {
+	client *http.Client
 }
 
 func NewDeployCommand() Command {
-	return &deployCommand{}
+	return &deployCommand{
+		client: &http.Client{Timeout: 2 * time.Second},
+	}
 }
 
 func (c *deployCommand) Register() {
@@ -43,6 +50,21 @@ func (c *deployCommand) Func() func(*bot.Cmd) (string, error) {
 		app := cmd.Args[0]
 		container := cmd.Args[1]
 		image := cmd.Args[2]
+
+		imageParts := strings.Split(image, ":")
+		if len(imageParts) != 2 {
+			return fmt.Sprintf(invalidImageFormat, image), nil
+		}
+
+		imageRepo := imageParts[0]
+		imageTag := imageParts[1]
+
+		if r, err :=
+			c.client.Get(fmt.Sprintf(
+				"https://index.docker.io/v1/repositories/%s/tags/%s",
+				imageRepo, imageTag)); r.StatusCode != 200 || err != nil {
+			return fmt.Sprintf(invalidImage, imageTag, imageRepo), nil
+		}
 
 		output := ""
 		// Note that this is a hack to make sure we force redeployment even if the image tag is the same
