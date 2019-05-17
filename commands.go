@@ -18,9 +18,16 @@ const (
 	invalidImage       = "```Invalid image, tag %s does not exist in dockerhub repo %s```"
 	invalidResetSyntax = "Reset command requires 1 parameter: " +
 		"```!deploy your_app``` \nGot: ```!deploy %s```"
-	appNotFound = "Sorry, app %s could not be found"
-	cmdResponse = "This is the response to your request:\n ```\n%s\n``` "
+	appNotFound       = "Sorry, app %s could not be found"
+	cmdResponse       = "This is the response to your request:\n ```\n%s\n``` "
+	clusterNameNotice = "You must specify cluster name in order to use the command:\n ```%s %s %s\n```"
 )
+
+func useClusterName(clusteName string) func(cmd *bot.Cmd) (s string, e error) {
+	return func(cmd *bot.Cmd) (s string, e error) {
+		return fmt.Sprintf(clusterNameNotice, cmd.Command, clusteName, strings.Join(cmd.Args, " ")), nil
+	}
+}
 
 type deployCommand struct {
 	client *http.Client
@@ -36,12 +43,17 @@ func NewDeployCommand() Command {
 	}
 }
 
-func (c *deployCommand) Register() {
+func (c *deployCommand) Register(clusterName string) {
 	bot.RegisterCommandV3(
+		fmt.Sprintf("deploy %s", clusterName),
+		"Kubectl deployment abstraction",
+		fmt.Sprintf("%s your_app your_container your/docker:image", clusterName),
+		c.Func3())
+	bot.RegisterCommand(
 		"deploy",
 		"Kubectl deployment abstraction",
-		"your_app your_container your/docker:image",
-		c.Func3())
+		"",
+		useClusterName(clusterName))
 }
 
 func (c *deployCommand) Func3() func(*bot.Cmd) (bot.CmdResultV3, error) {
@@ -181,10 +193,15 @@ func (c *resetCommand) executeSequence(app string) (string, error) {
 	return strings.Join(output, "\n"), nil
 }
 
-func (c *resetCommand) Register() {
+func (c *resetCommand) Register(clusterName string) {
+	bot.RegisterCommandV3(
+		fmt.Sprintf("reset %s", clusterName),
+		"Kubectl reset abstraction to allow removing pvc for stateful sets by app label and recreating them",
+		fmt.Sprintf("%s your_app", clusterName),
+		c.Func3())
 	bot.RegisterCommand(
 		"reset",
-		"Kubectl reset abstraction to allow removing pvc for stateful sets by app label and recreating them",
-		"your_app",
-		c.Func())
+		"Kubectl reset abstraction",
+		"",
+		useClusterName(clusterName))
 }
