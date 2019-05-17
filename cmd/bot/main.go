@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"strings"
 
 	"github.com/go-chat-bot/bot/slack"
 	"github.com/iov-one/chatbot"
@@ -16,8 +17,9 @@ func main() {
 		chatbot.NewResetCommand(),
 	}
 
-	if os.Getenv(clusterName) == "" {
-		chatbot.Log("you must supply a clusterName via %s env variable\n", clusterName)
+	if !strings.HasSuffix(os.Getenv(clusterName), "net") {
+		chatbot.Log("you must supply a clusterName via %s env variable and it has to end in 'net', like 'devnet'\n",
+			clusterName)
 		os.Exit(1)
 	}
 

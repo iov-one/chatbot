@@ -23,9 +23,12 @@ const (
 	clusterNameNotice = "You must specify cluster name in order to use the command:\n ```%s %s %s\n```"
 )
 
-func useClusterName(clusteName string) func(cmd *bot.Cmd) (s string, e error) {
+func useClusterName(clusterName string) func(cmd *bot.Cmd) (s string, e error) {
 	return func(cmd *bot.Cmd) (s string, e error) {
-		return fmt.Sprintf(clusterNameNotice, cmd.Command, clusteName, strings.Join(cmd.Args, " ")), nil
+		if len(cmd.Args) > 0 && strings.Contains(cmd.Args[0], "net") {
+			return "", nil
+		}
+		return fmt.Sprintf(clusterNameNotice, cmd.Command, clusterName, strings.Join(cmd.Args, " ")), nil
 	}
 }
 
