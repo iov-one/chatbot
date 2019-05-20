@@ -12,51 +12,47 @@ import (
 )
 
 const (
-	invalidDeploySyntax = "Deploy command requires 3 parameters: " +
-		"```!deploy your_app your_container your/docker:image``` \nGot: ```!deploy %s```"
+	invalidDeploySyntax = "Deploy command requires 4 parameters: " +
+		"```!deploy %s your_app your_container your/docker:image``` \nGot: ```!deploy %s```"
 	invalidImageFormat = "```Invalid image format, should be your_dockerhub_repo:tag``` \nGot: ```%s```"
 	invalidImage       = "```Invalid image, tag %s does not exist in dockerhub repo %s```"
-	invalidResetSyntax = "Reset command requires 1 parameter: " +
-		"```!deploy your_app``` \nGot: ```!deploy %s```"
+	invalidResetSyntax = "Reset command requires 2 parameters: " +
+		"```!deploy %s your_app``` \nGot: ```!deploy %s```"
 	appNotFound       = "Sorry, app %s could not be found"
 	cmdResponse       = "This is the response to your request:\n ```\n%s\n``` "
-	clusterNameNotice = "You must specify cluster name in order to use the command:\n ```%s %s %s\n```"
+	clusterNameNotice = "You must specify cluster name in order to use the command:\n ```!%s %s %s\n```"
 )
 
-func useClusterName(clusterName string) func(cmd *bot.Cmd) (s string, e error) {
-	return func(cmd *bot.Cmd) (s string, e error) {
-		if len(cmd.Args) > 0 && strings.HasSuffix(cmd.Args[0], "net") {
-			return "", nil
-		}
-		return fmt.Sprintf(clusterNameNotice, cmd.Command, clusterName, strings.Join(cmd.Args, " ")), nil
+func wrongClusterName(cmd *bot.Cmd, clusterName string) (string, bool) {
+	if len(cmd.Args) > 0 && strings.HasSuffix(cmd.Args[0], "net") {
+		return "", cmd.Args[0] != clusterName
 	}
+
+	return fmt.Sprintf(clusterNameNotice, cmd.Command, clusterName, strings.Join(cmd.Args, " ")), true
 }
 
 type deployCommand struct {
-	client *http.Client
+	client      *http.Client
+	clusterName string
 }
 
 func (c *deployCommand) Func() func(*bot.Cmd) (string, error) {
 	panic("stub")
 }
 
-func NewDeployCommand() Command {
+func NewDeployCommand(clusterName string) Command {
 	return &deployCommand{
-		client: &http.Client{Timeout: 2 * time.Second},
+		client:      &http.Client{Timeout: 2 * time.Second},
+		clusterName: clusterName,
 	}
 }
 
-func (c *deployCommand) Register(clusterName string) {
+func (c *deployCommand) Register() {
 	bot.RegisterCommandV3(
-		fmt.Sprintf("deploy %s", clusterName),
-		"Kubectl deployment abstraction",
-		fmt.Sprintf("%s your_app your_container your/docker:image", clusterName),
-		c.Func3())
-	bot.RegisterCommand(
 		"deploy",
 		"Kubectl deployment abstraction",
-		"",
-		useClusterName(clusterName))
+		fmt.Sprintf("%s your_app your_container your/docker:image", c.clusterName),
+		c.Func3())
 }
 
 func (c *deployCommand) Func3() func(*bot.Cmd) (bot.CmdResultV3, error) {
@@ -72,8 +68,14 @@ func (c *deployCommand) Func3() func(*bot.Cmd) (bot.CmdResultV3, error) {
 			defer func() {
 				res.Done <- true
 			}()
-			if len(cmd.Args) != 3 {
-				res.Message <- fmt.Sprintf(invalidDeploySyntax, strings.Join(cmd.Args, " "))
+			msg, isWrong := wrongClusterName(cmd, c.clusterName)
+			if isWrong {
+				res.Message <- msg
+				return
+			}
+
+			if len(cmd.Args) != 4 {
+				res.Message <- fmt.Sprintf(invalidDeploySyntax, c.clusterName, strings.Join(cmd.Args, " "))
 				return
 			}
 
@@ -127,16 +129,18 @@ func (c *deployCommand) Func3() func(*bot.Cmd) (bot.CmdResultV3, error) {
 }
 
 type resetCommand struct {
-	lock sync.Locker
+	lock        sync.Locker
+	clusterName string
 }
 
 func (c *resetCommand) Func3() func(*bot.Cmd) (bot.CmdResultV3, error) {
 	panic("stub")
 }
 
-func NewResetCommand() Command {
+func NewResetCommand(clusterName string) Command {
 	return &resetCommand{
-		lock: &sync.Mutex{},
+		lock:        &sync.Mutex{},
+		clusterName: clusterName,
 	}
 }
 
@@ -144,8 +148,13 @@ func (c *resetCommand) Func() func(*bot.Cmd) (string, error) {
 	return func(cmd *bot.Cmd) (s string, e error) {
 		c.lock.Lock()
 		defer c.lock.Unlock()
-		if len(cmd.Args) != 1 {
-			return fmt.Sprintf(invalidResetSyntax, strings.Join(cmd.Args, " ")), nil
+		msg, isWrong := wrongClusterName(cmd, c.clusterName)
+		if isWrong {
+			return msg, nil
+		}
+
+		if len(cmd.Args) != 2 {
+			return fmt.Sprintf(invalidResetSyntax, c.clusterName, strings.Join(cmd.Args, " ")), nil
 		}
 
 		app := cmd.Args[0]
@@ -196,15 +205,10 @@ func (c *resetCommand) executeSequence(app string) (string, error) {
 	return strings.Join(output, "\n"), nil
 }
 
-func (c *resetCommand) Register(clusterName string) {
-	bot.RegisterCommand(
-		fmt.Sprintf("reset %s", clusterName),
-		"Kubectl reset abstraction to allow removing pvc for stateful sets by app label and recreating them",
-		fmt.Sprintf("%s your_app", clusterName),
-		c.Func())
+func (c *resetCommand) Register() {
 	bot.RegisterCommand(
 		"reset",
-		"Kubectl reset abstraction",
-		"",
-		useClusterName(clusterName))
+		"Kubectl reset abstraction to allow removing pvc for stateful sets by app label and recreating them",
+		fmt.Sprintf("%s your_app", c.clusterName),
+		c.Func())
 }

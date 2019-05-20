@@ -12,10 +12,6 @@ const slackTokenEnv = "CHATBOT_SLACK_TOKEN"
 const clusterName = "CHATBOT_CLUSTER_NAME"
 
 func main() {
-	commands := []chatbot.Command{
-		chatbot.NewDeployCommand(),
-		chatbot.NewResetCommand(),
-	}
 
 	envCluster := os.Getenv(clusterName)
 
@@ -31,8 +27,13 @@ func main() {
 		os.Exit(1)
 	}
 
+	commands := []chatbot.Command{
+		chatbot.NewDeployCommand(envCluster),
+		chatbot.NewResetCommand(envCluster),
+	}
+
 	for _, cmd := range commands {
-		cmd.Register(envCluster)
+		cmd.Register()
 	}
 
 	slack.Run(os.Getenv(slackTokenEnv))
