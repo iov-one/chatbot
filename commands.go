@@ -197,11 +197,11 @@ func (c *resetCommand) executeSequence(app string) (string, error) {
 }
 
 func (c *resetCommand) Register(clusterName string) {
-	bot.RegisterCommandV3(
+	bot.RegisterCommand(
 		fmt.Sprintf("reset %s", clusterName),
 		"Kubectl reset abstraction to allow removing pvc for stateful sets by app label and recreating them",
 		fmt.Sprintf("%s your_app", clusterName),
-		c.Func3())
+		c.Func())
 	bot.RegisterCommand(
 		"reset",
 		"Kubectl reset abstraction",
