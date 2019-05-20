@@ -25,7 +25,7 @@ const (
 
 func useClusterName(clusterName string) func(cmd *bot.Cmd) (s string, e error) {
 	return func(cmd *bot.Cmd) (s string, e error) {
-		if len(cmd.Args) > 0 && strings.Contains(cmd.Args[0], "net") {
+		if len(cmd.Args) > 0 && strings.HasSuffix(cmd.Args[0], "net") {
 			return "", nil
 		}
 		return fmt.Sprintf(clusterNameNotice, cmd.Command, clusterName, strings.Join(cmd.Args, " ")), nil

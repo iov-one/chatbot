@@ -17,8 +17,11 @@ func main() {
 		chatbot.NewResetCommand(),
 	}
 
-	if !strings.HasSuffix(os.Getenv(clusterName), "net") {
-		chatbot.Log("you must supply a clusterName via %s env variable and it has to end in 'net', like 'devnet'\n",
+	envCluster := os.Getenv(clusterName)
+
+	if !strings.HasSuffix(envCluster, "net") || len(envCluster) < 4 {
+		chatbot.Log("you must supply a clusterName via %s env variable and it has to end in 'net' and be "+
+			"at least 4 characters long, like 'devnet'\n",
 			clusterName)
 		os.Exit(1)
 	}
@@ -29,7 +32,7 @@ func main() {
 	}
 
 	for _, cmd := range commands {
-		cmd.Register(os.Getenv(clusterName))
+		cmd.Register(envCluster)
 	}
 
 	slack.Run(os.Getenv(slackTokenEnv))
