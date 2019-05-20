@@ -17,7 +17,7 @@ const (
 	invalidImageFormat = "```Invalid image format, should be your_dockerhub_repo:tag``` \nGot: ```%s```"
 	invalidImage       = "```Invalid image, tag %s does not exist in dockerhub repo %s```"
 	invalidResetSyntax = "Reset command requires 2 parameters: " +
-		"```!deploy %s your_app``` \nGot: ```!deploy %s```"
+		"```!reset %s your_app``` \nGot: ```!deploy %s```"
 	appNotFound       = "Sorry, app %s could not be found"
 	cmdResponse       = "This is the response to your request:\n ```\n%s\n``` "
 	clusterNameNotice = "You must specify cluster name in order to use the command:\n ```!%s %s %s\n```"
