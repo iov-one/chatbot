@@ -1,6 +1,8 @@
 BUILD_VERSION ?= manual
 BUILDOUT ?= chatbot
 IMAGE_NAME = "iov1ops/chatbot:${BUILD_VERSION}"
+# make sure we turn on go modules
+export GO111MODULE := on
 
 dist: deps clean test build
 
@@ -12,12 +14,8 @@ build:
 
 test:
 	go test -race ./...
-
 deps:
-ifndef $(shell command -v dep help > /dev/null)
-	go get github.com/golang/dep/cmd/dep
-endif
-	dep ensure -vendor-only
+	@ go mod vendor
 
 docker_build: deps
 	docker build . -t $(IMAGE_NAME)
