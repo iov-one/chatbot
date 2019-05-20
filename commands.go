@@ -79,9 +79,9 @@ func (c *deployCommand) Func3() func(*bot.Cmd) (bot.CmdResultV3, error) {
 				return
 			}
 
-			app := cmd.Args[0]
-			container := cmd.Args[1]
-			image := cmd.Args[2]
+			app := cmd.Args[1]
+			container := cmd.Args[2]
+			image := cmd.Args[3]
 
 			imageParts := strings.Split(image, ":")
 			if len(imageParts) != 2 {
@@ -157,7 +157,7 @@ func (c *resetCommand) Func() func(*bot.Cmd) (string, error) {
 			return fmt.Sprintf(invalidResetSyntax, c.clusterName, strings.Join(cmd.Args, " ")), nil
 		}
 
-		app := cmd.Args[0]
+		app := cmd.Args[1]
 		output, err := c.executeSequence(app)
 		if err != nil {
 			return "", err
