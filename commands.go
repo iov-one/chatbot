@@ -18,8 +18,8 @@ const (
 	invalidImage       = "```Invalid image, tag %s does not exist in dockerhub repo %s```"
 	invalidResetSyntax = "Reset command requires 2 parameters: " +
 		"```!reset %s your_app``` \nGot: ```!deploy %s```"
-	invalidP2PSyntax = "Reset command requires 1 parameter: " +
-		"```!reset %s your_app``` \nGot: ```!deploy %s```"
+	invalidP2PSyntax = "P2P command requires 2 parameters: " +
+		"```!p2p %s your_app``` \nGot: ```!p2p %s```"
 	appNotFound       = "Sorry, app %s could not be found"
 	cmdResponse       = "This is the response to your request:\n ```\n%s\n``` "
 	clusterNameNotice = "You must specify cluster name in order to use the command:\n ```!%s %s %s\n```"
@@ -241,7 +241,7 @@ func (c *p2pCommand) Func() func(*bot.Cmd) (string, error) {
 			return msg, nil
 		}
 
-		if len(cmd.Args) != 1 {
+		if len(cmd.Args) != 2 {
 			return fmt.Sprintf(invalidP2PSyntax, c.clusterName, strings.Join(cmd.Args, " ")), nil
 		}
 
