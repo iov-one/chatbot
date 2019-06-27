@@ -30,6 +30,7 @@ func main() {
 	commands := []chatbot.Command{
 		chatbot.NewDeployCommand(envCluster),
 		chatbot.NewResetCommand(envCluster),
+		chatbot.NewP2PCommand(envCluster),
 	}
 
 	for _, cmd := range commands {

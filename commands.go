@@ -18,6 +18,8 @@ const (
 	invalidImage       = "```Invalid image, tag %s does not exist in dockerhub repo %s```"
 	invalidResetSyntax = "Reset command requires 2 parameters: " +
 		"```!reset %s your_app``` \nGot: ```!deploy %s```"
+	invalidP2PSyntax = "P2P command requires 2 parameters: " +
+		"```!p2p %s your_app``` \nGot: ```!p2p %s```"
 	appNotFound       = "Sorry, app %s could not be found"
 	cmdResponse       = "This is the response to your request:\n ```\n%s\n``` "
 	clusterNameNotice = "You must specify cluster name in order to use the command:\n ```!%s %s %s\n```"
@@ -209,6 +211,89 @@ func (c *resetCommand) Register() {
 	bot.RegisterCommand(
 		"reset",
 		"Kubectl reset abstraction to allow removing pvc for stateful sets by app label and recreating them",
+		fmt.Sprintf("%s your_app", c.clusterName),
+		c.Func())
+}
+
+type p2pCommand struct {
+	lock        sync.Locker
+	clusterName string
+}
+
+func (c *p2pCommand) Func3() func(*bot.Cmd) (bot.CmdResultV3, error) {
+	panic("stub")
+}
+
+func NewP2PCommand(clusterName string) Command {
+	return &p2pCommand{
+		lock:        &sync.Mutex{},
+		clusterName: clusterName,
+	}
+}
+
+func (c *p2pCommand) Func() func(*bot.Cmd) (string, error) {
+	cmdStr := "kubectl get service %s-p2p -o jsonpath={@.status.loadBalancer.ingress[0].ip}"
+	return func(cmd *bot.Cmd) (s string, e error) {
+		c.lock.Lock()
+		defer c.lock.Unlock()
+		msg, isWrong := wrongClusterName(cmd, c.clusterName)
+		if isWrong {
+			return msg, nil
+		}
+
+		if len(cmd.Args) != 2 {
+			return fmt.Sprintf(invalidP2PSyntax, c.clusterName, strings.Join(cmd.Args, " ")), nil
+		}
+
+		app := cmd.Args[1]
+		output := execute(fmt.Sprintf(cmdStr, app))
+
+		if isNotFound(output) {
+			return fmt.Sprintf(appNotFound, app), nil
+		}
+
+		return fmt.Sprintf(cmdResponse, output), nil
+	}
+}
+
+func (c *p2pCommand) executeSequence(app string) (string, error) {
+	filename := "/tmp/st.yaml"
+	pvcDeleteCmd := "kubectl delete pvc -l app=%s"
+	statefulSetStoreCmd := "kubectl get statefulsets.apps %s -o=yaml"
+	statefulSetDeleteCmd := "kubectl delete -f /tmp/st.yaml"
+	statefulSetApplyCmd := "kubectl apply -f /tmp/st.yaml"
+
+	defer func() {
+		_ = os.Remove(filename)
+	}()
+
+	output := make([]string, 0)
+
+	statefulSetYaml := execute(fmt.Sprintf(statefulSetStoreCmd, app))
+	if isNotFound(statefulSetYaml) {
+		return statefulSetYaml, nil
+	}
+
+	f, err := os.Create(filename)
+	if err != nil {
+		return "", err
+	}
+	_, err = f.WriteString(statefulSetYaml)
+	if err != nil {
+		return "", err
+	}
+
+	output = append(output, execute(statefulSetDeleteCmd))
+	output = append(output, execute(fmt.Sprintf(pvcDeleteCmd, app)))
+	output = append(output, execute(statefulSetApplyCmd))
+
+	return strings.Join(output, "\n"), nil
+}
+
+func (c *p2pCommand) Register() {
+	bot.RegisterCommand(
+		"p2p",
+		"Kubectl p2p allows to view external p2p ip for your app",
 		fmt.Sprintf("%s your_app", c.clusterName),
 		c.Func())
 }
